@@ -42,3 +42,16 @@ def insert_representation(model_type, doc_name, representation):
         'doc_name': doc_name,
         'representation': representation
     })
+
+
+def find_representation(model_type, doc_name):
+    collection = _switch_collection(model_type)
+    if collection is None:
+        return f"Mode type '{model_type}' is not supported!", None
+
+    record = collection.find_one({'doc_name': doc_name})
+    if record is not None:
+        rep = record['representation']
+    else:
+        rep = None
+    return None, rep
