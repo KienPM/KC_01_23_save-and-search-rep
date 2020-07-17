@@ -1,0 +1,5 @@
+gensim
+vncorenlp
+underthesea
+flask
+flask_cors
