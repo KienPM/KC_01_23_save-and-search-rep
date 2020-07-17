@@ -3,21 +3,13 @@ import os
 import sys
 import argparse
 import numpy as np
-from pymongo import MongoClient
 
 from gensim import corpora, models
 from vncorenlp import VnCoreNLP
 from underthesea import sent_tokenize
 
-client = MongoClient('localhost', 27017)
-db = client['KC_01_23']
-tf_idf_collection = db['tf_idf_representation']
-lda_collection = db['lda_representation']
-word2vec_collection = db['word2vec_representation']
-
-tf_idf_collection.ensure_index('ten_vb', unique=True)
-lda_collection.ensure_index('ten_vb', unique=True)
-word2vec_collection.ensure_index('ten_vb', unique=True)
+from constants import *
+from dao import check_doc_name, insert_representation
 
 
 def load_dict_words():
@@ -48,14 +40,9 @@ def get_doc_name(input_file):
     return os.path.splitext(os.path.basename(input_file))[0]
 
 
-def check_doc_name(collection, doc_name):
-    record = collection.find_one({'ten_vb': doc_name})
-    return record is None
-
-
 def tf_idf_doc_embedding(input_file):
     doc_name = get_doc_name(input_file)
-    if not check_doc_name(tf_idf_collection, doc_name):
+    if not check_doc_name(MODEL_TYPE_TF_IDF, doc_name):
         print('Document name already exists')
         return
 
@@ -67,16 +54,16 @@ def tf_idf_doc_embedding(input_file):
     rep = model[bow]
 
     print(f'Saving to db...')
-    tf_idf_collection.insert_one({
-        'ten_vb': doc_name,
-        'bieu_dien': rep
-    })
-    print('Done!')
+    err = insert_representation(MODEL_TYPE_TF_IDF, doc_name, rep)
+    if not err:
+        print('Done!')
+    else:
+        print(f'ERROR: {err}')
 
 
 def lda_doc_embedding(input_file):
     doc_name = get_doc_name(input_file)
-    if not check_doc_name(lda_collection, doc_name):
+    if not check_doc_name(MODEL_TYPE_LDA, doc_name):
         print('Document name already exists')
         return
 
@@ -92,16 +79,16 @@ def lda_doc_embedding(input_file):
         rep[item[0]] = str(item[1])
 
     print(f'Saving to db...')
-    lda_collection.insert_one({
-        'ten_vb': doc_name,
-        'bieu_dien': rep
-    })
-    print('Done!')
+    err = insert_representation(MODEL_TYPE_LDA, doc_name, rep)
+    if not err:
+        print('Done!')
+    else:
+        print(f'ERROR: {err}')
 
 
 def word2vec_doc_embedding(input_file):
     doc_name = get_doc_name(input_file)
-    if not check_doc_name(word2vec_collection, doc_name):
+    if not check_doc_name(MODEL_TYPE_WORD2VEC, doc_name):
         print('Document name already exists')
         return
 
@@ -125,11 +112,11 @@ def word2vec_doc_embedding(input_file):
     rep = [str(item) for item in rep]
 
     print(f'Saving to db...')
-    word2vec_collection.insert_one({
-        'ten_vb': doc_name,
-        'bieu_dien': rep
-    })
-    print('Done!')
+    err = insert_representation(MODEL_TYPE_WORD2VEC, doc_name, rep)
+    if not err:
+        print('Done!')
+    else:
+        print(f'ERROR: {err}')
 
 
 if __name__ == '__main__':
@@ -157,7 +144,7 @@ if __name__ == '__main__':
         print('Input file does not exists')
         sys.exit(0)
 
-    annotator = VnCoreNLP(address="http://172.27.169.164", port=9000)
+    annotator = VnCoreNLP(address="http://localhost", port=9000)
     print('Loading dictionary...')
     dict_words = load_dict_words()
     dictionary = corpora.Dictionary([dict_words])
