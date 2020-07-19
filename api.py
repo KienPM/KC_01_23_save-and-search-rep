@@ -24,7 +24,7 @@ def find_document():
         return jsonify({
             'status': 0,
             'data': {
-                'model_type': model_type,
+                'modelType': model_type,
                 'representation': rep
             }
         })
